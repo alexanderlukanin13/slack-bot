@@ -1,46 +1,41 @@
-starter-python-bot
-=============
+slack-bot
+=========
 
-## Overview
-A simple starting point for creating a Beep Boop hostable, Python based Slack bot.
+Assumptions
+-----------
 
-Visit [Beep Boop](https://beepboophq.com/docs/article/overview) to get the scoop on the the Beep Boop hosting platform. The Slack API documentation can be found [here](https://api.slack.com/).
-
-## Assumptions
 * You have already signed up with [Beep Boop](https://beepboophq.com) and have a local fork of this project.
+
 * You have sufficient rights in your Slack team to configure a bot and generate/access a Slack API token.
 
-## Usage
+Deploy on BeepBoop
+------------------
 
-### Run locally
-Install dependencies ([virtualenv](http://virtualenv.readthedocs.org/en/latest/) is recommended.)
+1. In BeepBoop, click "My Teams" and authorize it to your Slack team.
+
+2. In BeepBoop, click "My Projects" and add a bot (specify github repo)
+
+3. In Slack, add a bot user to your team and copy API token: https://my.slack.com/services/new/bot
+
+4. In BeepBoop bot Settings page, save API token
+
+5. In BeepBoop bot Status page, click "Start Bot"
+
+6. In Slack, click Settings (gear icon) -> "Invite bot to a channel" to make it available in `#general` or other channels.
+
+Run locally (for debug)
+-----------------------
+
+Please note that you should stop BeepBoop-hosted bot first.
+
+Install dependencies ([virtualenv](http://virtualenv.readthedocs.org/en/latest/) is recommended)
 
 	pip install -r requirements.txt
-	export SLACK_TOKEN=<YOUR SLACK TOKEN>; python rtmbot.py
+	export SLACK_TOKEN=<YOUR SLACK TOKEN>
+	python rtmbot.py
 
 Things are looking good if the console prints something like:
 
 	Connected <your bot name> to <your slack team> team at https://<your slack team>.slack.com.
 
 If you want change the logging level, prepend `export LOG_LEVEL=<your level>; ` to the `python rtmbot.py` command.
-
-### Run locally in Docker
-	docker build -t starter-python-bot .
-	docker run --rm -it -e SLACK_TOKEN=<YOUR SLACK API TOKEN> starter-python-bot
-
-### Run in BeepBoop
-If you have linked your local repo with the Beep Boop service (check [here](https://beepboophq.com/0_o/my-projects)), changes pushed to the remote master branch will automatically deploy.
-
-## Customizing the Bot
-If you are looking to change what the bot responds to and how they respond, take a look at the `plugins/starter.py` file.  You'll see a function that gets called on all "message" type events, which has various regular expression matches that determine when the bot responds and how it responds.  Each "Plugin" is registered with the RtmBot on startup by scanning the "plugins/" directory and communicates back to the RtmBot through variables like output[] and attachments[].
-
-For more information on the Plugins pattern see the sections "Add Plugins" and "Create Plugins" at: https://github.com/slackhq/python-rtmbot/blob/master/README.md
-
-## Acknowledgements
-
-This code was forked from https://github.com/slackhq/python-rtmbot and utilizes the awesome https://github.com/slackhq/python-slackclient project by [@rawdigits](https://github.com/rawdigits).  Please see https://github.com/slackhq/python-rtmbot/blob/master/README.md for
-a description about the organization of this code and using the plugins architecture.
-
-## License
-
-See the [LICENSE](LICENSE.md) file for license rights and limitations (MIT).
