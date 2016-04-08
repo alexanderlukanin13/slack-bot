@@ -25,6 +25,7 @@ class RtmBot(object):
         self.token = token
         self.bot_plugins = []
         self.slack_client = None
+        self.bot_user_name = None
     def connect(self):
         """Convenience method that creates Server instance"""
         self.slack_client = SlackClient(self.token)
@@ -33,6 +34,8 @@ class RtmBot(object):
             self.slack_client.server.username,
             self.slack_client.server.login_data['team']['name'],
             self.slack_client.server.domain))
+        self.bot_user_name = self.slack_client.server.login_data['self']['id']
+        logging.debug(u'Bot user name: {}'.format(self.bot_user_name))
     def start(self):
         self.connect()
         self.load_plugins()
@@ -50,8 +53,7 @@ class RtmBot(object):
             self.slack_client.server.ping()
             self.last_ping = now
     def isBotMention(self, message):
-        botUserName = self.slack_client.server.login_data['self']['id']
-        if re.search("@{}".format(botUserName), message):
+        if re.search("@{}".format(self.bot_user_name), message):
             return True
         else:
             return False
@@ -109,19 +111,19 @@ class RtmBot(object):
             logging.info(plugin)
             name = plugin.split('/')[-1][:-3]
 #            try:
-            self.bot_plugins.append(Plugin(name))
+            self.bot_plugins.append(Plugin(name, self.bot_user_name))
 #            except:
 #                print "error loading plugin %s" % name
 
 class Plugin(object):
-    def __init__(self, name, plugin_config={}):
+    def __init__(self, name, bot_user_name):
         self.name = name
         self.jobs = []
         self.module = __import__(name)
         self.register_jobs()
         self.outputs = []
         if 'setup' in dir(self.module):
-            self.module.setup()
+            self.module.setup(bot_user_name)
     def register_jobs(self):
         if 'crontable' in dir(self.module):
             for interval, function in self.module.crontable:
