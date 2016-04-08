@@ -1,5 +1,5 @@
 from collections import namedtuple
-from datetime import datetime
+from datetime import datetime, timedelta
 import io
 import logging
 import os
@@ -41,6 +41,7 @@ class StageInfo(object):
         self.aliases.append(alias)
 
     def add_event(self, dt1, dt2, event_name):
+        assert dt1 < dt2, 'Invalid timespan for event {}'.format(event_name)
         self.events.append(Event(event_name, dt1, dt2))
         self.events.sort(key=lambda x: x[1])
 
@@ -114,6 +115,8 @@ class Stages(object):
                 except ValueError:
                     raise ValueError('Invalid datetime at line {}: {!r}'
                                      .format(line_number, line))
+                if dt1.time() > dt2.time():
+                    dt2 += timedelta(days=1)
                 if stage is None:
                     raise ValueError('Undefined stage at line {}: {!r}'
                                      .format(line_number, line))
