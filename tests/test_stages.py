@@ -11,7 +11,7 @@ PROJECT_PATH = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__f
 sys.path.append(os.path.join(PROJECT_PATH, 'plugins'))
 
 import stages
-from stages import Stages, NothingFound, _parse_datetime, _format_times
+from stages import Stages, EventNotFound, _parse_datetime, _format_times
 
 
 def test_parse_datetime_today(mocker):
@@ -43,28 +43,28 @@ def test_from_txt(datetime_mock):
     assert len(set(stages.stages)) == 2
     assert sorted(stages._aliases.keys()) == ['1', '2', 'stage 1', 'stage 2']
     # Check Stage 1
-    with pytest.raises(NothingFound):
+    with pytest.raises(EventNotFound):
         stages.get_event('Stage 1', datetime(2016, 4, 8, 9, 29))
     assert stages.get_event('Stage 1', datetime(2016, 4, 8, 9, 30)).name == 'Some Event'
     assert stages.get_event('Stage 1', datetime(2016, 4, 8, 11, 0)).name == 'Some Event'
     assert stages.get_event('Stage 1', datetime(2016, 4, 8, 11, 29)).name == 'Some Event'
     assert stages.get_event('Stage 1', datetime(2016, 4, 8, 11, 31)).name == 'Another Event'
     assert stages.get_event('Stage 1', datetime(2016, 4, 8, 13, 00)).name == 'Another Event'
-    with pytest.raises(NothingFound):
+    with pytest.raises(EventNotFound):
         stages.get_event('Stage 1', datetime(2016, 4, 8, 13, 31))
     # Stage 1, wrong date
-    with pytest.raises(NothingFound):
+    with pytest.raises(EventNotFound):
         stages.get_event('Stage 1', datetime(2016, 4, 9, 12, 0))
     # Check Stage 2
-    with pytest.raises(NothingFound):
+    with pytest.raises(EventNotFound):
         stages.get_event('Stage 2', datetime(2016, 4, 8, 9, 29))
     assert stages.get_event('Stage 2', datetime(2016, 4, 8, 9, 30)).name == 'Event at Stage 2'
     assert stages.get_event('Stage 2', datetime(2016, 4, 8, 10, 30)).name == 'Event at Stage 2'
     assert stages.get_event('Stage 2', datetime(2016, 4, 8, 11, 0)).name == 'Event at Stage 2'
-    with pytest.raises(NothingFound):
+    with pytest.raises(EventNotFound):
         stages.get_event('Stage 2', datetime(2016, 4, 8, 11, 1))
     # Check alias
-    with pytest.raises(NothingFound):
+    with pytest.raises(EventNotFound):
         stages.get_event('2', datetime(2016, 4, 8, 9, 29))
     assert stages.get_event('2', datetime(2016, 4, 8, 9, 30)).name == 'Event at Stage 2'
 

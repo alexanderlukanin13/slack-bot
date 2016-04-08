@@ -1,6 +1,7 @@
 from collections import namedtuple
 from datetime import datetime
 import io
+import logging
 import os
 import re
 
@@ -11,11 +12,16 @@ import pytz
 TIMEZONE = 'Asia/Yekaterinburg'
 
 
-class NothingFound(Exception):
+class EventNotFound(Exception):
     """
     This exception is raised when nothing is planned for the given datetime.
     """
-    pass
+
+
+class StageNotFound(Exception):
+    """
+    This exception is raised when user provides unknown stage name.
+    """
 
 
 Event = namedtuple('Event', ['name', 'dt1', 'dt2'])
@@ -29,13 +35,14 @@ class StageInfo(object):
     def __init__(self, name):
         self.name = name
         self.aliases = []
-        self._items = []
+        self.events = []
 
     def add_alias(self, alias):
         self.aliases.append(alias)
 
     def add_event(self, dt1, dt2, event_name):
-        self._items.append(Event(event_name, dt1, dt2))
+        self.events.append(Event(event_name, dt1, dt2))
+        self.events.sort(key=lambda x: x[1])
 
     def get_event(self, dt):
         """
@@ -45,10 +52,10 @@ class StageInfo(object):
         :param dt: datetime
         :return type: str
         """
-        for event in self._items:
+        for event in self.events:
             if event.dt1 <= dt <= event.dt2:
                 return event
-        raise NothingFound
+        raise EventNotFound
 
 
 class Stages(object):
@@ -66,12 +73,14 @@ class Stages(object):
         for alias in [stage.name.lower()] + [x.lower() for x in stage.aliases]:
             self._aliases[alias] = stage
 
-    def get_event(self, stage_name, dt):
+    def get_stage(self, stage_name):
         try:
-            stage = self._aliases[stage_name.lower()]
+            return self._aliases[stage_name.lower()]
         except KeyError:
-            raise NothingFound('No such stage: {}'.format(stage_name))
-        return stage.get_event(dt)
+            raise StageNotFound('Stage not found: {}'.format(stage_name))
+
+    def get_event(self, stage_name, dt):
+        return self.get_stage(stage_name).get_event(dt)
 
     @staticmethod
     def from_txt(stream):
@@ -145,7 +154,7 @@ def setup(bot_user_name):
     rtmbot.py plugin setup
     """
     global _bot_mention, _stages
-    _bot_mention = '@' + bot_user_name
+    _bot_mention = '<@{}>'.format(bot_user_name)
     file_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'stages.txt')
     with io.open(file_path) as file:
         _stages = Stages.from_txt(file)
@@ -165,7 +174,7 @@ def _is_direct_message(data):
 
 
 def _get_normalized_text(data):
-    text = data['text'].replace(_bot_mention, '')
+    text = data['text'].replace(_bot_mention, '').lstrip(':')
     text = re.sub('\s+', ' ', text)
     return text.strip()
 
@@ -182,7 +191,9 @@ def process_mention(data):
     """
     Process Slack message which mentions the bot.
     """
+    logging.debug('data: {!r}'.format(data['text']))
     text = _get_normalized_text(data)
+    logging.debug('text: {!r}'.format(text))
     if not text:
         _print_help(data)
         return
@@ -203,7 +214,7 @@ def _process_now(text, match):
             stream.write(u'{} {}\n'
                          .format(event.name, _format_times(event.dt1, event.dt2)))
             found = True
-        except NothingFound:
+        except EventNotFound:
             stream.write(u'n/a\n')
     if not found:
         return _NO_ONE_IS_PLAYING
@@ -211,7 +222,15 @@ def _process_now(text, match):
 
 
 def _process_times(text, match):
-    return 'time1\ntime2'
+    stage_name = match.group(1)
+    try:
+        stage = _stages.get_stage(stage_name)
+    except StageNotFound:
+        return u'Please choose a stage: {}'.format(', '.join(x.name for x in _stages.stages))
+    stream = io.StringIO()
+    for event in stage.events:
+        stream.write(u'{} {}\n'.format(event.name, _format_times(event.dt1, event.dt2)))
+    return stream.getvalue()
 
 
 _NO_ONE_IS_PLAYING = '''
@@ -221,7 +240,7 @@ Sorry, but no one is playing right now.
 
 _USAGE = '''You can use one of the following commands:
 `now` - who is playing right now
-`times Stage 1` - schedule for particular stage (1, 2, 3...)
+`times stage 1` - playlist for particular stage (1-7)
 '''.strip()
 
 
@@ -232,7 +251,7 @@ def _print_help(data):
 # Bot commands
 _REGEXES = {
     r'^!?now$': _process_now,
-    r'^!?times$': _process_times,
+    r'^!?times\s*(.{0,20})$': _process_times,
 }
 _REGEXES = [(re.compile(x, re.U|re.I), y) for x, y in _REGEXES.items()]
 
