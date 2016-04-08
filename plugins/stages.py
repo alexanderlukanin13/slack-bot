@@ -9,7 +9,7 @@ import pytz
 
 
 # All input and output datetimes use the following timezone
-TIMEZONE = 'Asia/Yekaterinburg'
+TIMEZONE = 'US/Pacific'
 
 
 class EventNotFound(Exception):
