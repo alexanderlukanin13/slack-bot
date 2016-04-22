@@ -98,12 +98,13 @@ class Stages(object):
             line = line.strip()
             if not line or line.startswith('#'):
                 continue
-            match = re.match(r'^STAGE (\d+)$', line, re.U|re.I)
+            match = re.match(r'^STAGE (\d+)$|^\w+(?:\s+\w+){0,2}$', line, re.U|re.I)
             if match:
                 if stage is not None:
                     stages.add_stage(stage)
                 stage = StageInfo(line)
-                stage.add_alias(match.group(1))
+                if match.group(1) is not None:
+                    stage.add_alias(match.group(1))
                 continue
             match = re.match(r'^(\S.*\S)\s+(\d{1,2}:\d{2})\s*-\s*(\d{1,2}:\d{2})$',
                              line, re.U|re.I)
@@ -254,7 +255,7 @@ def _print_help(data):
 # Bot commands
 _REGEXES = {
     r'^!?now$': _process_now,
-    r'^!?times\s*(.{0,20})$': _process_times,
+    r'^!?times\s*(.{0,30})$': _process_times,
 }
 _REGEXES = [(re.compile(x, re.U|re.I), y) for x, y in _REGEXES.items()]
 
